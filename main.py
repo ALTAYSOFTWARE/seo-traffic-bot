@@ -135,13 +135,13 @@ class SEOTrafficSimulator:
     
     def _scroll_page(self, driver: webdriver.Chrome):
         """Sayfayı insan gibi kaydır"""
-        # Rastgele scroll sayısı
-        scroll_count = random.randint(2, 5)
+        # Rastgele scroll sayısı (daha fazla)
+        scroll_count = random.randint(5, 10)
         
         for _ in range(scroll_count):
             scroll_height = driver.execute_script("return window.innerHeight;")
             driver.execute_script(f"window.scrollBy(0, {scroll_height});")
-            self._human_like_delay(2, 4)
+            self._human_like_delay(3, 6)
     
     def _visit_website(self, driver: webdriver.Chrome, url: str) -> bool:
         """
@@ -165,7 +165,7 @@ class SEOTrafficSimulator:
             self._scroll_page(driver)
             
             # Rastgele linklere tıkla
-            if random.random() < 0.4:  # %40 ihtimalle başka sayfaya git
+            if random.random() < 0.6:
                 self._click_random_link(driver)
             
             return True
@@ -176,14 +176,29 @@ class SEOTrafficSimulator:
     def _click_random_link(self, driver: webdriver.Chrome):
         """Sayfada rastgele bir linke tıkla"""
         try:
-            links = driver.find_elements(By.TAG_NAME, "a")
-            if links:
-                random_link = random.choice(links)
+            # Daha iyi link seçimi
+            links = driver.find_elements(By.CSS_SELECTOR, "a:not([href^='javascript'])")
+            
+            # İçeriği olan linkler filtrele
+            valid_links = []
+            for link in links:
+                if link.text.strip():
+                    href = link.get_attribute('href')
+                    if href and ('http' in href or href.startswith('/')):
+                        valid_links.append(link)
+            
+            if valid_links:
+                random_link = random.choice(valid_links)
                 driver.execute_script("arguments[0].scrollIntoView();", random_link)
-                self._human_like_delay(1, 2)
-                random_link.click()
-                self._human_like_delay(2, 4)
-                logger.info("Rastgele linke tıklandı")
+                self._human_like_delay(2, 3)
+                
+                try:
+                    random_link.click()
+                except:
+                    driver.execute_script("arguments[0].click();", random_link)
+                
+                self._human_like_delay(3, 6)
+                logger.info(f"Linke tıklandı: {random_link.text[:30]}")
         except Exception as e:
             logger.debug(f"Link tıklatma hatası: {e}")
     
@@ -233,21 +248,23 @@ class SEOTrafficSimulator:
                 self._human_like_delay(2, 4)
                 self._scroll_page(driver)
                 
-                # Ekstra sayfalar ziyaret et
+                # Ekstra sayfalar ziyaret et (daha fazla)
                 pages_visited = 1
-                if random.random() < 0.6:  # %60 ihtimalle başka sayfaya git
-                    try:
-                        self._click_random_link(driver)
-                        pages_visited += 1
-                    except:
-                        pass
+                for _ in range(random.randint(1, 3)):
+                    if random.random() < 0.7:
+                        try:
+                            self._click_random_link(driver)
+                            pages_visited += 1
+                            self._scroll_page(driver)
+                        except:
+                            pass
                 
                 visit_info['success'] = True
                 visit_info['pages_visited'] = pages_visited
-                logger.info(f"Ziyaret başarılı: {pages_visited} sayfa")
+                logger.info(f"Ziyaret basarili: {pages_visited} sayfa")
             
         except Exception as e:
-            logger.error(f"Ziyaret simülasyonu hatası: {e}")
+            logger.error(f"Ziyaret simulasyonu hatasi: {e}")
         
         finally:
             if driver:
@@ -270,7 +287,7 @@ class SEOTrafficSimulator:
             visit_count: Toplam ziyaret sayısı
             delay_between_visits: Ziyaretler arası gecikme (saniye)
         """
-        logger.info(f"Kampanya başlatılıyor: '{keyword}' -> {target_url}")
+        logger.info(f"Kampanya baslatiliyor: '{keyword}' -> {target_url}")
         logger.info(f"Toplam ziyaret: {visit_count}")
         
         for i in range(visit_count):
@@ -280,44 +297,44 @@ class SEOTrafficSimulator:
                 result = self.simulate_visit(keyword, target_url)
                 
                 if result['success']:
-                    logger.info(f"Başarılı ziyaret: {result['device_type']}")
+                    logger.info(f"Basarili ziyaret: {result['device_type']}")
                 else:
-                    logger.warning(f"Başarısız ziyaret")
+                    logger.warning(f"Basarisiz ziyaret")
                 
             except Exception as e:
-                logger.error(f"Kampanya hatası: {e}")
+                logger.error(f"Kampanya hatasi: {e}")
             
             # Son ziyaret değilse bekle
             if i < visit_count - 1:
                 logger.info(f"{delay_between_visits} saniye bekleniyor...")
                 time.sleep(delay_between_visits)
         
-        logger.info("Kampanya tamamlandı!")
+        logger.info("Kampanya tamamlandi!")
         self.print_statistics()
     
     def print_statistics(self):
         """İstatistikleri yazdır"""
         if not self.visits:
-            logger.info("Henüz ziyaret kaydı yok")
+            logger.info("Henuz ziyaret kaydi yok")
             return
         
         successful = sum(1 for v in self.visits if v['success'])
         total_duration = sum(v['duration'] for v in self.visits)
         
         logger.info("\n" + "="*50)
-        logger.info("ZIYARET İSTATİSTİKLERİ")
+        logger.info("ZIYARET ISTATISTIKLERI")
         logger.info("="*50)
         logger.info(f"Toplam ziyaret: {len(self.visits)}")
-        logger.info(f"Başarılı ziyaret: {successful}/{len(self.visits)}")
-        logger.info(f"Başarı oranı: {(successful/len(self.visits)*100):.1f}%")
-        logger.info(f"Toplam süre: {total_duration:.0f} saniye ({total_duration/60:.1f} dakika)")
+        logger.info(f"Basarili ziyaret: {successful}/{len(self.visits)}")
+        logger.info(f"Basari orani: {(successful/len(self.visits)*100):.1f}%")
+        logger.info(f"Toplam sure: {total_duration:.0f} saniye ({total_duration/60:.1f} dakika)")
         
         if self.visits:
             devices = {}
             for visit in self.visits:
                 device = visit['device_type']
                 devices[device] = devices.get(device, 0) + 1
-            logger.info(f"Cihaz dağılımı: {devices}")
+            logger.info(f"Cihaz dagilimi: {devices}")
         
         logger.info("="*50 + "\n")
 
