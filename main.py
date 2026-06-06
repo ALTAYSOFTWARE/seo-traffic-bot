@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Google SEO Traffic Simulator
 Özellikleri:
@@ -33,7 +34,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('bot.log'),
+        logging.FileHandler('bot.log', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -114,13 +115,6 @@ class SEOTrafficSimulator:
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-gpu')
-        
-        # Cihaz emulatörü
-        if device['type'] != 'desktop':
-            mobile_emulation = {
-                "deviceName": device['name']
-            }
-            chrome_options.add_experimental_option("mobileEmulation", mobile_emulation)
         
         # Window boyutu
         chrome_options.add_argument(f'--window-size={device["width"]},{device["height"]}')
@@ -286,9 +280,9 @@ class SEOTrafficSimulator:
                 result = self.simulate_visit(keyword, target_url)
                 
                 if result['success']:
-                    logger.info(f"✓ Başarılı ziyaret: {result['device_type']}")
+                    logger.info(f"Başarılı ziyaret: {result['device_type']}")
                 else:
-                    logger.warning(f"✗ Başarısız ziyaret")
+                    logger.warning(f"Başarısız ziyaret")
                 
             except Exception as e:
                 logger.error(f"Kampanya hatası: {e}")
