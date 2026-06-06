@@ -1,0 +1,13 @@
+{
+  "keyword": "python programming tutorial",
+  "target_url": "https://example.com",
+  "visit_count": 10,
+  "delay_between_visits": 3600,
+  "google_url": "https://www.google.com",
+  "search_result_timeout": 10,
+  "enable_proxies": true,
+  "random_click_probability": 0.4,
+  "page_change_probability": 0.6,
+  "min_visit_duration": 120,
+  "max_visit_duration": 600
+}
