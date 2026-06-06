@@ -57,7 +57,7 @@ class SEOTrafficSimulator:
         self.traffic_logger = TrafficLogger()
         self.visits = []
         
-        logger.info("SEO Traffic Simulator başlatıldı")
+        logger.info("SEO Traffic Simulator baslatildi")
     
     def _get_random_device(self) -> Dict:
         """Rastgele cihaz tipi seç"""
@@ -120,12 +120,15 @@ class SEOTrafficSimulator:
         chrome_options.add_argument(f'--window-size={device["width"]},{device["height"]}')
         
         try:
-            driver = webdriver.Chrome(options=chrome_options)
+            driver = webdriver.Chrome(
+                executable_path=r'E:\seo-traffic-bot-main\chromedriver.exe',
+                options=chrome_options
+            )
             # JavaScript bot algılamasını engelle
             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => false})")
             return driver
         except Exception as e:
-            logger.error(f"Chrome driver kurulum hatası: {e}")
+            logger.error(f"Chrome driver kurulum hatasi: {e}")
             return None
     
     def _human_like_delay(self, min_delay: float = 1, max_delay: float = 5):
@@ -139,9 +142,12 @@ class SEOTrafficSimulator:
         scroll_count = random.randint(5, 10)
         
         for _ in range(scroll_count):
-            scroll_height = driver.execute_script("return window.innerHeight;")
-            driver.execute_script(f"window.scrollBy(0, {scroll_height});")
-            self._human_like_delay(3, 6)
+            try:
+                scroll_height = driver.execute_script("return window.innerHeight;")
+                driver.execute_script(f"window.scrollBy(0, {scroll_height});")
+                self._human_like_delay(3, 6)
+            except:
+                break
     
     def _visit_website(self, driver: webdriver.Chrome, url: str) -> bool:
         """
@@ -170,22 +176,25 @@ class SEOTrafficSimulator:
             
             return True
         except Exception as e:
-            logger.error(f"Ziyaret hatası: {e}")
+            logger.error(f"Ziyaret hatasi: {e}")
             return False
     
     def _click_random_link(self, driver: webdriver.Chrome):
         """Sayfada rastgele bir linke tıkla"""
         try:
             # Daha iyi link seçimi
-            links = driver.find_elements(By.CSS_SELECTOR, "a:not([href^='javascript'])")
+            links = driver.find_elements(By.CSS_SELECTOR, "a")
             
             # İçeriği olan linkler filtrele
             valid_links = []
             for link in links:
-                if link.text.strip():
+                try:
+                    text = link.text.strip()
                     href = link.get_attribute('href')
-                    if href and ('http' in href or href.startswith('/')):
+                    if text and href and ('http' in href or href.startswith('/')):
                         valid_links.append(link)
+                except:
+                    pass
             
             if valid_links:
                 random_link = random.choice(valid_links)
@@ -198,9 +207,9 @@ class SEOTrafficSimulator:
                     driver.execute_script("arguments[0].click();", random_link)
                 
                 self._human_like_delay(3, 6)
-                logger.info(f"Linke tıklandı: {random_link.text[:30]}")
+                logger.info(f"Linke tiklandi")
         except Exception as e:
-            logger.debug(f"Link tıklatma hatası: {e}")
+            logger.debug(f"Link tiklatma hatasi: {e}")
     
     def simulate_visit(self, keyword: str, target_url: str) -> Dict:
         """
@@ -238,10 +247,20 @@ class SEOTrafficSimulator:
                 return visit_info
             
             # Google'da ara
-            logger.info(f"'{keyword}' için Google araması yapılıyor")
-            search_success = self.google_searcher.search_and_click(
-                driver, keyword, target_url
-            )
+            logger.info(f"'{keyword}' icin Google araması yapiliyor")
+            
+            # Google'a git
+            if not self.google_searcher.go_to_google(driver):
+                logger.warning("Google'a gidilemedi")
+                return visit_info
+            
+            # Anahtar kelimeyi ara
+            if not self.google_searcher.search_keyword(driver, keyword):
+                logger.warning("Arama yapilamamadi")
+                return visit_info
+            
+            # Hedef URL'yi bul ve tıkla
+            search_success = self.google_searcher.find_and_click_url(driver, target_url)
             
             if search_success:
                 # Hedef URL'ye tıklandıktan sonra sayfayı gezin
@@ -268,7 +287,10 @@ class SEOTrafficSimulator:
         
         finally:
             if driver:
-                driver.quit()
+                try:
+                    driver.quit()
+                except:
+                    pass
             
             visit_info['duration'] = time.time() - start_time
             self.visits.append(visit_info)
@@ -309,7 +331,7 @@ class SEOTrafficSimulator:
                 logger.info(f"{delay_between_visits} saniye bekleniyor...")
                 time.sleep(delay_between_visits)
         
-        logger.info("Kampanya tamamlandi!")
+        logger.info("Kampanya tamamlandi")
         self.print_statistics()
     
     def print_statistics(self):
@@ -326,7 +348,8 @@ class SEOTrafficSimulator:
         logger.info("="*50)
         logger.info(f"Toplam ziyaret: {len(self.visits)}")
         logger.info(f"Basarili ziyaret: {successful}/{len(self.visits)}")
-        logger.info(f"Basari orani: {(successful/len(self.visits)*100):.1f}%")
+        if len(self.visits) > 0:
+            logger.info(f"Basari orani: {(successful/len(self.visits)*100):.1f}%")
         logger.info(f"Toplam sure: {total_duration:.0f} saniye ({total_duration/60:.1f} dakika)")
         
         if self.visits:
